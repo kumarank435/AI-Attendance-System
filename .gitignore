@@ -1,0 +1,9 @@
+backend/attendance-system/target/
+backend/attendance-system/.idea/
+backend/attendance-system/*.class
+face-recognition-service/venv/
+face-recognition-service/__pycache__/
+face-recognition-service/encodings.pkl
+face-recognition-service/known_faces/
+.vscode/
+.DS_Store

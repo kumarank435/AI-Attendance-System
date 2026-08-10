@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Attendance System</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f8; color: #1f2937; }
+  header { background: #1e3a5f; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 20px; }
+  #logoutBtn { background: #e05d44; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+  .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+  .card { background: #fff; border-radius: 10px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .card h2 { margin-bottom: 16px; font-size: 18px; color: #1e3a5f; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; margin-top: 12px; }
+  input, select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+  button.primary { margin-top: 16px; background: #1e3a5f; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  button.primary:hover { background: #16304d; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13.5px; }
+  th { background: #f0f2f5; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab { padding: 8px 16px; border-radius: 6px; background: #e5e7eb; cursor: pointer; font-size: 13.5px; }
+  .tab.active { background: #1e3a5f; color: #fff; }
+  .hidden { display: none; }
+  .msg { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 13.5px; }
+  .msg.ok { background: #dcfce7; color: #166534; }
+  .msg.err { background: #fee2e2; color: #991b1b; }
+  .auth-wrap { max-width: 380px; margin: 60px auto; }
+  .link { color: #1e3a5f; cursor: pointer; text-decoration: underline; font-size: 13.5px; display: block; margin-top: 10px; }
+  .status-present { color: #166534; font-weight: 600; }
+  .status-absent { color: #991b1b; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="auth-wrap">
+  <div class="card">
+    <h2 id="authTitle">Log in</h2>
+    <div id="registerFields" class="hidden">
+      <label>Name</label><input id="regName">
+      <label>Role</label>
+      <select id="regRole" onchange="toggleRoleFields()">
+        <option value="STUDENT">Student</option>
+        <option value="FACULTY">Faculty</option>
+        <option value="HOD">HOD</option>
+      </select>
+      <div id="studentFields" class="hidden">
+        <label>Register Number</label><input id="regRegisterNumber">
+        <label>Section</label><input id="regSection">
+      </div>
+      <div id="deptField" class="hidden">
+        <label>Department</label><input id="regDepartment">
+      </div>
+    </div>
+    <label>Email</label><input id="authEmail">
+    <label>Password</label><input id="authPassword" type="password">
+    <button class="primary" onclick="doAuth()">Submit</button>
+    <div id="authMsg"></div>
+    <span class="link" onclick="toggleAuthMode()" id="authToggle">New here? Register</span>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <h1 id="welcomeText">Smart Attendance System</h1>
+    <button id="logoutBtn" onclick="logout()">Log out</button>
+  </header>
+
+  <div class="container">
+    <div id="hodPortal" class="hidden">
+      <div class="tabs">
+        <div class="tab active" onclick="showHodTab('students')">Students</div>
+        <div class="tab" onclick="showHodTab('faculty')">Faculty</div>
+        <div class="tab" onclick="showHodTab('subjects')">Subjects</div>
+        <div class="tab" onclick="showHodTab('assign')">Assign</div>
+        <div class="tab" onclick="showHodTab('reports')">Reports</div>
+      </div>
+
+      <div id="hod-students" class="card">
+        <h2>Add Student</h2>
+        <label>Name</label><input id="s_name">
+        <label>Email</label><input id="s_email">
+        <label>Password</label><input id="s_password">
+        <label>Register Number</label><input id="s_regno">
+        <label>Department</label><input id="s_dept">
+        <label>Section</label><input id="s_section">
+        <button class="primary" onclick="addStudent()">Add Student</button>
+        <div id="s_msg"></div>
+        <h2 style="margin-top:24px">All Students</h2>
+        <table id="studentsTable"><thead><tr><th>ID</th><th>Name</th><th>Reg No</th><th>Section</th><th>Enroll Face</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div id="hod-faculty" class="card hidden">
+        <h2>Add Faculty</h2>
+        <label>Name</label><input id="f_name">
+        <label>Email</label><input id="f_email">
+        <label>Password</label><input id="f_password">
+        <label>Department</label><input id="f_dept">
+        <button class="primary" onclick="addFaculty()">Add Faculty</button>
+        <div id="f_msg"></div>
+        <h2 style="margin-top:24px">All Faculty</h2>
+        <table id="facultyTable"><thead><tr><th>ID</th><th>Name</th><th>Department</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div id="hod-subjects" class="card hidden">
+        <h2>Create Subject</h2>
+        <label>Name</label><input id="sub_name">
+        <label>Code</label><input id="sub_code">
+        <label>Department</label><input id="sub_dept">
+        <button class="primary" onclick="createSubject()">Create Subject</button>
+        <div id="sub_msg"></div>
+        <h2 style="margin-top:24px">All Subjects</h2>
+        <table id="subjectsTable"><thead><tr><th>ID</th><th>Name</th><th>Code</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div id="hod-assign" class="card hidden">
+        <h2>Assign Subject to Faculty</h2>
+        <label>Faculty ID</label><input id="a_facultyId">
+        <label>Subject ID</label><input id="a_subjectId">
+        <label>Section</label><input id="a_section">
+        <button class="primary" onclick="assignSubject()">Assign</button>
+        <div id="a_msg"></div>
+      </div>
+
+      <div id="hod-reports" class="card hidden">
+        <h2>Export Attendance Report</h2>
+        <label>Subject ID</label><input id="r_subjectId">
+        <label>Section</label><input id="r_section">
+        <button class="primary" onclick="downloadExcel()">Download Excel</button>
+        <div id="r_msg"></div>
+      </div>
+    </div>
+
+    <div id="facultyPortal" class="hidden">
+      <div class="card">
+        <h2>Scan Classroom Attendance</h2>
+        <label>Faculty ID (your ID)</label><input id="scan_facultyId">
+        <label>Subject ID</label><input id="scan_subjectId">
+        <label>Section</label><input id="scan_section">
+        <label>Classroom Photo</label><input id="scan_image" type="file" accept="image/*">
+        <button class="primary" onclick="scanAttendance()">Scan Attendance</button>
+        <div id="scan_msg"></div>
+      </div>
+    </div>
+
+    <div id="studentPortal" class="hidden">
+      <div class="card">
+        <h2>My Attendance</h2>
+        <label>My Student ID</label><input id="my_studentId">
+        <button class="primary" onclick="loadMyAttendance()">Load Attendance</button>
+        <table id="myAttendanceTable"><thead><tr><th>Subject</th><th>Section</th><th>Date</th><th>Status</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8082/api';
+let token = localStorage.getItem('token');
+let role = localStorage.getItem('role');
+let userName = localStorage.getItem('userName');
+let isRegisterMode = false;
+
+function toggleAuthMode() {
+  isRegisterMode = !isRegisterMode;
+  document.getElementById('registerFields').classList.toggle('hidden', !isRegisterMode);
+  document.getElementById('authTitle').textContent = isRegisterMode ? 'Register' : 'Log in';
+  document.getElementById('authToggle').textContent = isRegisterMode ? 'Already have an account? Log in' : 'New here? Register';
+}
+
+function toggleRoleFields() {
+  const r = document.getElementById('regRole').value;
+  document.getElementById('studentFields').classList.toggle('hidden', r !== 'STUDENT');
+  document.getElementById('deptField').classList.toggle('hidden', r === 'STUDENT');
+}
+
+async function doAuth() {
+  const email = document.getElementById('authEmail').value;
+  const password = document.getElementById('authPassword').value;
+  const msgEl = document.getElementById('authMsg');
+  msgEl.innerHTML = '';
+
+  try {
+    let res, data;
+    if (isRegisterMode) {
+      const body = {
+        name: document.getElementById('regName').value,
+        email, password,
+        role: document.getElementById('regRole').value,
+        registerNumber: document.getElementById('regRegisterNumber').value,
+        department: document.getElementById('regDepartment').value,
+        section: document.getElementById('regSection').value
+      };
+      res = await fetch(`${API}/auth/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    } else {
+      res = await fetch(`${API}/auth/login`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
+    }
+    data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    token = data.token; role = data.role; userName = data.name;
+    localStorage.setItem('token', token);
+    localStorage.setItem('role', role);
+    localStorage.setItem('userName', userName);
+    localStorage.setItem('userId', data.userId);
+    enterApp();
+  } catch (e) {
+    msgEl.innerHTML = `<div class="msg err">${e.message}</div>`;
+  }
+}
+
+function logout() {
+  localStorage.clear();
+  location.reload();
+}
+
+function authHeaders(extra = {}) {
+  return { 'Authorization': `Bearer ${token}`, ...extra };
+}
+
+function enterApp() {
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('welcomeText').textContent = `Smart Attendance — ${userName} (${role})`;
+  document.getElementById('hodPortal').classList.add('hidden');
+  document.getElementById('facultyPortal').classList.add('hidden');
+  document.getElementById('studentPortal').classList.add('hidden');
+
+  if (role === 'HOD') { document.getElementById('hodPortal').classList.remove('hidden'); loadHodData(); }
+  else if (role === 'FACULTY') document.getElementById('facultyPortal').classList.remove('hidden');
+  else if (role === 'STUDENT') document.getElementById('studentPortal').classList.remove('hidden');
+}
+
+function showHodTab(tab) {
+  ['students','faculty','subjects','assign','reports'].forEach(t => {
+    document.getElementById('hod-'+t).classList.toggle('hidden', t !== tab);
+  });
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+async function loadHodData() {
+  const students = await (await fetch(`${API}/hod/students`, { headers: authHeaders() })).json();
+  const stBody = document.querySelector('#studentsTable tbody');
+  stBody.innerHTML = students.map(s => `<tr>
+    <td>${s.id}</td><td>${s.name}</td><td>${s.registerNumber}</td><td>${s.section}</td>
+    <td><input type="file" id="face_${s.id}" accept="image/*" style="width:120px"> <button onclick="enrollFace(${s.id})">Enroll</button></td>
+  </tr>`).join('');
+
+  const faculty = await (await fetch(`${API}/hod/faculty`, { headers: authHeaders() })).json();
+  document.querySelector('#facultyTable tbody').innerHTML = faculty.map(f =>
+    `<tr><td>${f.id}</td><td>${f.name}</td><td>${f.department}</td></tr>`).join('');
+
+  const subjects = await (await fetch(`${API}/hod/subjects`, { headers: authHeaders() })).json();
+  document.querySelector('#subjectsTable tbody').innerHTML = subjects.map(sub =>
+    `<tr><td>${sub.id}</td><td>${sub.name}</td><td>${sub.code}</td></tr>`).join('');
+}
+
+async function addStudent() {
+  const body = {
+    name: document.getElementById('s_name').value,
+    email: document.getElementById('s_email').value,
+    password: document.getElementById('s_password').value,
+    registerNumber: document.getElementById('s_regno').value,
+    department: document.getElementById('s_dept').value,
+    section: document.getElementById('s_section').value
+  };
+  const res = await fetch(`${API}/hod/students`, { method: 'POST', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify(body) });
+  const data = await res.json();
+  document.getElementById('s_msg').innerHTML = res.ok
+    ? `<div class="msg ok">Student added (ID ${data.id})</div>`
+    : `<div class="msg err">${data.error}</div>`;
+  if (res.ok) loadHodData();
+}
+
+async function addFaculty() {
+  const body = {
+    name: document.getElementById('f_name').value,
+    email: document.getElementById('f_email').value,
+    password: document.getElementById('f_password').value,
+    department: document.getElementById('f_dept').value
+  };
+  const res = await fetch(`${API}/hod/faculty`, { method: 'POST', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify(body) });
+  const data = await res.json();
+  document.getElementById('f_msg').innerHTML = res.ok
+    ? `<div class="msg ok">Faculty added (ID ${data.id})</div>`
+    : `<div class="msg err">${data.error}</div>`;
+  if (res.ok) loadHodData();
+}
+
+async function createSubject() {
+  const body = {
+    name: document.getElementById('sub_name').value,
+    code: document.getElementById('sub_code').value,
+    department: document.getElementById('sub_dept').value
+  };
+  const res = await fetch(`${API}/hod/subjects`, { method: 'POST', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify(body) });
+  const data = await res.json();
+  document.getElementById('sub_msg').innerHTML = res.ok
+    ? `<div class="msg ok">Subject created (ID ${data.id})</div>`
+    : `<div class="msg err">${data.error}</div>`;
+  if (res.ok) loadHodData();
+}
+
+async function assignSubject() {
+  const body = {
+    facultyId: parseInt(document.getElementById('a_facultyId').value),
+    subjectId: parseInt(document.getElementById('a_subjectId').value),
+    section: document.getElementById('a_section').value
+  };
+  const res = await fetch(`${API}/hod/assignments`, { method: 'POST', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify(body) });
+  const data = await res.json();
+  document.getElementById('a_msg').innerHTML = res.ok
+    ? `<div class="msg ok">Assigned successfully</div>`
+    : `<div class="msg err">${data.error}</div>`;
+}
+
+async function enrollFace(studentId) {
+  const fileInput = document.getElementById(`face_${studentId}`);
+  if (!fileInput.files[0]) { alert('Choose an image first'); return; }
+  const formData = new FormData();
+  formData.append('image', fileInput.files[0]);
+  const res = await fetch(`${API}/students/${studentId}/enroll-face`, { method: 'POST', headers: authHeaders(), body: formData });
+  const data = await res.json();
+  alert(res.ok ? 'Face enrolled!' : (data.error || 'Failed'));
+}
+
+async function downloadExcel() {
+  const subjectId = document.getElementById('r_subjectId').value;
+  const section = document.getElementById('r_section').value;
+  const res = await fetch(`${API}/hod/reports/excel?subjectId=${subjectId}&section=${section}`, { headers: authHeaders() });
+  if (!res.ok) { document.getElementById('r_msg').innerHTML = `<div class="msg err">Failed to generate report</div>`; return; }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'attendance_report.xlsx'; a.click();
+  document.getElementById('r_msg').innerHTML = `<div class="msg ok">Downloaded</div>`;
+}
+
+async function scanAttendance() {
+  const facultyId = document.getElementById('scan_facultyId').value;
+  const subjectId = document.getElementById('scan_subjectId').value;
+  const section = document.getElementById('scan_section').value;
+  const fileInput = document.getElementById('scan_image');
+  if (!fileInput.files[0]) { alert('Choose a classroom photo'); return; }
+
+  const formData = new FormData();
+  formData.append('facultyId', facultyId);
+  formData.append('subjectId', subjectId);
+  formData.append('section', section);
+  formData.append('image', fileInput.files[0]);
+
+  const res = await fetch(`${API}/attendance/scan`, { method: 'POST', headers: authHeaders(), body: formData });
+  const data = await res.json();
+  document.getElementById('scan_msg').innerHTML = res.ok
+    ? `<div class="msg ok">${data.message} — Present: ${data.present}, Absent: ${data.absent} / ${data.totalStudents} total</div>`
+    : `<div class="msg err">${data.error}</div>`;
+}
+
+async function loadMyAttendance() {
+  const studentId = document.getElementById('my_studentId').value;
+  const res = await fetch(`${API}/students/${studentId}/attendance`, { headers: authHeaders() });
+  const data = await res.json();
+  document.querySelector('#myAttendanceTable tbody').innerHTML = data.map(r =>
+    `<tr><td>${r.subjectName}</td><td>${r.section}</td><td>${r.attendanceDate}</td>
+     <td class="status-${r.status.toLowerCase()}">${r.status}</td></tr>`).join('');
+}
+
+if (token && role) enterApp();
+</script>
+</body>
+</html>
